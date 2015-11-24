@@ -8,7 +8,8 @@
 
     <link href="/bower/ionic/release/css/ionic.css" rel="stylesheet">
     <link href="/dist/jr-crop.css" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+    
     <script src="/bower/blueimp-canvas-to-blob/js/canvas-to-blob.min.js"></script>
 
     <!-- ionic/angularjs js -->
@@ -74,7 +75,8 @@
         $jrCrop.crop({
           url: image,
           width: 200,
-          height: 200
+          height: 200,
+          title: "HelloWorld"
         }).then(function(canvas) {
 
           canvas.toBlob(function(image) {

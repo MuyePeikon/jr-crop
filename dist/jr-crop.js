@@ -15,7 +15,10 @@ angular.module('jrCrop', ['ionic'])
 function($ionicModal, $rootScope, $q) {
 
   var template = '<div class="jr-crop modal">' +
-                    '<div class="jr-crop-center-container">' +
+                    '<div class="bar bar-header bar-dark jr-crop-footer">' +
+                      '<div class="title">{{title}}</div>' +
+                    '</div>' +
+                    '<div class="jr-crop-center-container" style="opacity:0.5; background:#000;">' +
                       '<div class="jr-crop-img" ng-style="{width: width + \'px\', height: height + \'px\'}"></div>' +
                     '</div>' +
                     '<div class="jr-crop-center-container">' +
@@ -23,7 +26,10 @@ function($ionicModal, $rootScope, $q) {
                     '</div>' +
                     '<div class="bar bar-footer bar-dark jr-crop-footer">' +
                       '<button class="button button-clear" ng-click="cancel()">{{cancelText}}</button>' +
-                      '<div class="title">{{title}}</div>' +
+                      '<div class="title">' +
+                        '<button class="button button-clear button-icon fa fa-undo" ng-click="rotateClockwise()"></button>' +
+                        '<button class="button button-clear button-icon fa fa-repeat" ng-click="rotateAntiClockwise()"></button>' +
+                      '</div>' +
                       '<button class="button button-clear" ng-click="crop()">{{chooseText}}</button>' +
                     '</div>' +
                   '</div>';
@@ -44,6 +50,7 @@ function($ionicModal, $rootScope, $q) {
     posX: 0,
     posY: 0,
     scale: 1,
+    rotate: 0,
 
     last_scale: 1,
     last_posX: 0,
@@ -68,20 +75,25 @@ function($ionicModal, $rootScope, $q) {
       // options === scope. Expose actions for modal.
       self.options.cancel = this.cancel.bind(this);
       self.options.crop = this.crop.bind(this);
+      self.options.rotateClockwise = this.rotateClockwise.bind(this);
+      self.options.rotateAntiClockwise = this.rotateAntiClockwise.bind(this);
     },
 
     /**
      * Init the image in a center position
      */
     initImage: function() {
-      if (this.options.height < this.imgHeight || this.options.width < this.imgWidth) {
-        var imgAspectRatio = this.imgWidth / this.imgHeight;
+      var curImgHeight = (this.rotate % 2 === 0 ? this.imgHeight : this.imgWidth);
+      var curImgWidth = (this.rotate % 2 === 0 ? this.imgWidth : this.imgHeight);
+
+      if (this.options.height < curImgHeight || this.options.width < curImgWidth) {
+        var curImgAspectRatio = curImgWidth / curImgHeight;
         var selectAspectRatio = this.options.width / this.options.height;
 
-        if (selectAspectRatio > imgAspectRatio) {
-          this.scale = this.last_scale = this.options.width / this.imgWidth;
+        if (selectAspectRatio > curImgAspectRatio) {
+          this.scale = this.last_scale = this.options.width / curImgWidth;
         } else {
-          this.scale = this.last_scale = this.options.height / this.imgHeight;
+          this.scale = this.last_scale = this.options.height / curImgHeight;
         }
       }
 
@@ -112,18 +124,22 @@ function($ionicModal, $rootScope, $q) {
           max_pos_x = 0, max_pos_y = 0,
           transforming_correctX = 0, transforming_correctY = 0,
 
-          scaleMax = 1, scaleMin,
-          image_ratio = self.imgWidth / self.imgHeight,
-          cropper_ratio = self.options.width / self.options.height;
+          max_scale = 1, min_scale = 0;
 
-      if (cropper_ratio < image_ratio) {
-        scaleMin = self.options.height / self.imgHeight;
-      } else {
-        scaleMin = self.options.width / self.imgWidth;
+      function setScaleWithinBoundaries() {
+        // must set scale first
+        calcScaleRange();
+        if (self.scale < min_scale) {
+          self.scale = min_scale;
+        }
+        if (self.scale > max_scale) {
+          self.scale = max_scale;
+        }
       }
 
       function setPosWithinBoundaries() {
-        calcMaxPos();
+
+        calcPosRange();
         if (self.posX > min_pos_x) {
           self.posX = min_pos_x;
         }
@@ -143,16 +159,30 @@ function($ionicModal, $rootScope, $q) {
        * This took some headaches to write, good luck
        * figuring this out.
        */
-      function calcMaxPos() {
+      function calcPosRange() {
         // Calculate current proportions of the image.
-        var currWidth = self.scale * self.imgWidth;
-        var currHeight = self.scale * self.imgHeight;
+        var scaledWidth = self.scale * (self.rotate % 2 === 0 ? self.imgWidth : self.imgHeight);
+        var scaledHeight = self.scale * (self.rotate % 2 === 0 ? self.imgHeight : self.imgWidth);
 
         // Images are scaled from the center
-        min_pos_x = (currWidth - self.imgWidth) / 2;
-        min_pos_y = (currHeight - self.imgHeight) / 2;
-        max_pos_x = -(currWidth - min_pos_x - self.options.width);
-        max_pos_y = -(currHeight - min_pos_y - self.options.height);
+        min_pos_x = (scaledWidth - self.imgWidth) / 2;
+        min_pos_y = (scaledHeight - self.imgHeight) / 2;
+        max_pos_x = -(scaledWidth - min_pos_x - self.options.width);
+        max_pos_y = -(scaledHeight - min_pos_y - self.options.height);
+      }
+
+      function calcScaleRange() {
+        var imgWidth = (self.rotate % 2 === 0 ? self.imgWidth : self.imgHeight);
+        var imgHeight = (self.rotate % 2 === 0 ? self.imgHeight : self.imgWidth);
+
+        var image_ratio = imgWidth / imgHeight,
+            cropper_ratio = self.options.width / self.options.height;
+        if (cropper_ratio < image_ratio) {
+          min_scale = self.options.height / imgHeight;
+        } else {
+          min_scale = self.options.width / imgWidth;
+        }
+        max_scale = 1;
       }
 
       // Based on: http://stackoverflow.com/questions/18011099/pinch-to-zoom-using-hammer-js
@@ -170,8 +200,8 @@ function($ionicModal, $rootScope, $q) {
             setPosWithinBoundaries();
             break;
           case 'transform':
-            self.scale = Math.max(scaleMin, Math.min(self.last_scale * e.gesture.scale, scaleMax));
-            setPosWithinBoundaries();
+            self.scale = self.last_scale * e.gesture.scale;
+            setScaleWithinBoundaries();
             break;
           case 'dragend':
             self.last_posX = self.posX;
@@ -203,12 +233,22 @@ function($ionicModal, $rootScope, $q) {
 
       var transform =
         'translate3d(' + self.posX + 'px,' + self.posY + 'px, 0) ' +
-        'scale3d(' + self.scale + ',' + self.scale + ', 1)';
+        'scale3d(' + self.scale + ',' + self.scale + ', 1) ' +
+        'rotateZ(' + 90 * self.rotate + 'deg)';
 
       self.imgSelect.style[ionic.CSS.TRANSFORM] = transform;
       self.imgFull.style[ionic.CSS.TRANSFORM] = transform;
     },
 
+    rotateClockwise: function() {
+      this.rotate = (this.rotate + 1) % 4;
+      this.initImage();
+    },
+
+    rotateAntiClockwise: function() {
+      this.rotate = (this.rotate + 3) % 4;
+      this.initImage();
+    },
     /**
      * Calculate the new image from the values calculated by
      * user input. Return a canvas-object with the image on it.
@@ -227,8 +267,8 @@ function($ionicModal, $rootScope, $q) {
       canvas.height = this.options.height / this.scale;
 
       // The full proportions
-      var currWidth = this.imgWidth * this.scale;
-      var currHeight = this.imgHeight * this.scale;
+      var currWidth = (this.rotate % 2 === 0 ? this.imgWidth : this.imgHeight) * this.scale;
+      var currHeight = (this.rotate % 2 === 0 ? this.imgHeight : this.imgWidth) * this.scale;
 
       // Because the top/left position doesn't take the scale of the image in
       // we need to correct this value.
@@ -238,7 +278,22 @@ function($ionicModal, $rootScope, $q) {
       var sourceX = (this.posX - correctX) / this.scale;
       var sourceY = (this.posY - correctY) / this.scale;
 
-      context.drawImage(this.imgFull, sourceX, sourceY);
+      var deltaX = sourceX,
+          deltaY = sourceY;
+
+      if (this.rotate === 1) {
+        deltaX = sourceY;
+        deltaY = -sourceX - this.imgHeight;
+      } else if (this.rotate === 2) {
+        deltaX = -sourceX - this.imgWidth;
+        deltaY = -sourceY - this.imgHeight;
+      } else if (this.rotate === 3) {
+        deltaX = -sourceY - this.imgWidth;
+        deltaY = sourceX;
+      }
+      context.rotate(Math.PI / 2 * this.rotate);
+      //context.translate(this.options.height / this.scale, 0);
+      context.drawImage(this.imgFull, deltaX, deltaY);
 
       this.options.modal.remove();
       this.promise.resolve(canvas);
@@ -272,7 +327,7 @@ function($ionicModal, $rootScope, $q) {
       cancelText: 'Cancel',
       chooseText: 'Choose',
       template: template,
-      circle: false
+      circle: true
     },
 
     crop: function(options) {
