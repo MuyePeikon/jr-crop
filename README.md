@@ -1,6 +1,12 @@
 jr-crop
 ======
 
+This is the fork of jr-crop plugin by JrSchild (https://github.com/JrSchild/jr-crop)
+
+Support rotating images now!
+
+We've added two rotate buttons(using [font-awesome](http://fontawesome.io/get-started/), you need web-connection to get it), now you can make your image quarter turn. And it worked on Android as well as on IOS.
+
 A simple ionic plugin to crop your images, inspired by whatsapp and telegram.
 * Specifiy width and height of target
 * Doesn't actually scale the image, only returns a cropped version. Since the quality of images while scaling is inconsistent it's up to the developper to implement this, preferably on the server.
