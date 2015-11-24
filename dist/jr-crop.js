@@ -24,11 +24,11 @@ function($ionicModal, $rootScope, $q) {
                     '<div class="jr-crop-center-container">' +
                       '<div class="jr-crop-select" ng-class="{\'jr-crop-select-circle\': circle}" style="overflow: hidden" ng-style="{width: width + \'px\', height: height + \'px\'}"></div>' +
                     '</div>' +
-                    '<div class="bar bar-footer bar-dark jr-crop-footer">' +
+                    '<div class="bar bar-footer bar-clear jr-crop-footer">' +
                       '<button class="button button-clear" ng-click="cancel()">{{cancelText}}</button>' +
                       '<div class="title">' +
-                        '<button class="button button-clear button-icon fa fa-undo" ng-click="rotateClockwise()"></button>' +
-                        '<button class="button button-clear button-icon fa fa-repeat" ng-click="rotateAntiClockwise()"></button>' +
+                        '<button class="button button-clear button-icon fa fa-undo" style="margin-top:5px" ng-click="rotateClockwise()"></button>' +
+                        '<button class="button button-clear button-icon fa fa-repeat" style="margin-top:5px" ng-click="rotateAntiClockwise()"></button>' +
                       '</div>' +
                       '<button class="button button-clear" ng-click="crop()">{{chooseText}}</button>' +
                     '</div>' +
